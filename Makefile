@@ -3,7 +3,6 @@ CFLAGS=-g
 imagediff:
 	g++ $(CFLAGS) imagediff.cpp \
 	   -lopencv_highgui \
-	   -lopencv_imgproc \
 	   -lopencv_core \
 	   -o imagediff
 
