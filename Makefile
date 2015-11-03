@@ -1,7 +1,7 @@
-CFLAGS=-g
+CFLAGS=-g -std=c++11
 
 imagediff:
-	g++ $(CFLAGS) imagediff.cpp \
+	g++ $(CFLAGS) imagediff.cpp BlockMotionSearch.cpp \
 	   -lopencv_highgui \
 	   -lopencv_core \
 	   -o imagediff

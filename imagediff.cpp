@@ -3,16 +3,14 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <cstdlib>
 #include <iostream>
-#include <cstring>
 #include <cmath>
 
-#include "OutwardAlternatingSearch.h"
+#include "BlockMotionSearch.h"
 
 typedef cv::Mat_<cv::Vec3b> Mat3b;
 typedef cv::Mat_<int> Mat1i;
 
 static Mat3b convertInput(const char * label, cv::Mat & input, const cv::Size & size);
-static bool blockEqual(const Mat3b & m1, const Mat3b & m2);
 static int expandRight(const Mat3b & m1, const Mat3b & m2, const cv::Rect sourceRect, int dy);
 static void paintSubBlockLine(Mat1i & motion, const Mat3b & m1, const Mat3b & m2,
 		const cv::Point & start, const cv::Point & step);
@@ -41,68 +39,12 @@ int main(int argc, char** argv) {
 	bobInput.release();
 
 	const int blockSize = 16;
-	const int stepSize = 16;
 	const int windowSize = 100;
 
 	// Calculate block motion by exhaustive search
-	
 	std::cout << "Searching for motion...\n";
-
-	int yBlockCount = alice.rows / blockSize;
-	int xBlockCount = alice.cols / blockSize;
-	Mat1i blockMotion(yBlockCount, xBlockCount, CV_32SC1);
-
-	for (int yIndex = 0; yIndex < yBlockCount; yIndex++) {
-		int y = yIndex * blockSize;
-		for (int xIndex = 0; xIndex < xBlockCount; xIndex++) {
-			int x = xIndex * blockSize;
-			cv::Rect sourceRect(x, y, blockSize, blockSize);
-			Mat3b sourceBlock = alice(sourceRect);
-
-			int searchStart;
-			if (xIndex > 0 && blockMotion(yIndex, xIndex - 1) != NOT_FOUND) {
-				searchStart = y + blockMotion(yIndex, xIndex - 1);
-			} else if (yIndex > 0 && blockMotion(yIndex - 1, xIndex) != NOT_FOUND) {
-				searchStart = y + blockMotion(yIndex - 1, xIndex);
-			} else {
-				searchStart = y;
-			}
-			if (searchStart >= sharedSize.height - blockSize) {
-				searchStart = sharedSize.height - blockSize - 1;
-			}
-			if (searchStart < 0) {
-				searchStart = 0;
-			}
-
-			// Make sure the search window includes the no-change case
-			int tempWindowSize = std::max(std::abs(searchStart - y), windowSize);
-
-			OutwardAlternatingSearch search(searchStart, bob.rows - blockSize, tempWindowSize);
-			blockMotion(yIndex, xIndex) = NOT_FOUND;
-			for (; search; ++search) {
-				int dy = search.pos() - y;
-				//std::cout << "(" << x << "," << y << ") Searching at " << dy << "\n";
-				cv::Rect destRect(x, y + dy, blockSize, blockSize);
-				Mat3b destBlock = bob(destRect);
-				if (blockEqual(sourceBlock, destBlock)) {
-					// Found candidate
-					blockMotion(yIndex, xIndex) = dy;
-					
-					/*
-					if (dy != 0) {
-						std::cout << "Candidate: ("
-							<< x << ", "
-							<< y
-							<< " "
-							<< std::showpos << dy
-							<< ")\n";
-					}*/
-
-					break;
-				}
-			}
-		}
-	}
+	Mat1i blockMotion = BlockMotionSearch::Search(alice, bob, blockSize, windowSize);
+	
 /*
 	// Merge blocks by flood filling
 	int regionIndex = 1;
@@ -222,44 +164,6 @@ static Mat3b convertInput(const char * label, cv::Mat & input, const cv::Size & 
 	return ret;
 }
 
-static bool blockEqual(const Mat3b & m1, const Mat3b & m2) {
-	if (m1.size() != m2.size()) {
-		return false;
-	}
-	int rowSize = m1.cols * m1.elemSize();
-	for (int y = 0; y < m1.rows; y++) {
-		cv::Mat_<unsigned char> row1 = m1.rowRange(y, y+1).reshape(1, 1);
-		cv::Mat_<unsigned char> row2 = m2.rowRange(y, y+1).reshape(1, 1);
-		if (std::memcmp(row1.ptr(), row2.ptr(), rowSize) != 0) {
-			return false;
-		}
-	}
-	return true;
-}
-
-static int expandRight(const Mat3b & m1, const Mat3b & m2, const cv::Rect sourceRect, int dy) {
-	int newWidth = sourceRect.width;
-	for (int x = sourceRect.br().x; x <= m1.cols; x++) {
-		cv::Rect rect1(x, sourceRect.y, 1, sourceRect.height);
-		cv::Rect rect2(x, sourceRect.y + dy, 1, sourceRect.height);
-		if (blockEqual(m1(rect1), m2(rect2))) {
-			newWidth++;
-		} else {
-			break;
-		}
-	}
-	return newWidth;
-}
-
-static int expandDown(const Mat3b & m1, const Mat3b & m2, const cv::Rect sourceRect, int dy) {
-	int newHeight = sourceRect.height;
-	for (int y = sourceRect.br().y; y <= m1.cols; y++) {
-		cv::Rect rect1(sourceRect.x, y, sourceRect.width, 1);
-		cv::Rect rect2(sourceRect.x, y + dy, sourceRect.width, 1);
-
-	}
-}
-
 static Mat1i scaleUpMotion(Mat1i & blockMotion, int blockSize, const cv::Size & destSize) {
 	Mat1i motion(destSize, CV_32SC1);
 	Mat1i notFound(1, 1, CV_32SC1);
@@ -298,12 +202,9 @@ static void paintSubBlockLine(Mat1i & motion, const Mat3b & m1, const Mat3b & m2
 			cv::Point destPos = pos + cv::Point(0, prevMotion);
 			if (bounds.contains(destPos) && m1(pos) == m2(destPos)) {
 				motion.at<int>(pos) = prevMotion;
-			} else {
-				prevMotion = curMotion;
 			}
-		} else {
-			prevMotion = curMotion;
 		}
+		prevMotion = motion.at<int>(pos);
 		pos += step;
 	}
 }
