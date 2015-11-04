@@ -17,7 +17,7 @@ static void paintSubBlockLine(Mat1i & motion, const Mat3b & m1, const Mat3b & m2
 static unsigned char bgrToGrey(const cv::Vec3b & bgr);
 static Mat1i scaleUpMotion(Mat1i & blockMotion, int blockSize, const cv::Size & destSize);
 static void annotateMotion(const Mat1i & motion, Mat3b & visual);
-static cv::Point findMaskCentre(const cv::Mat_<unsigned char> mask, int value, int totalArea);
+static cv::Point findMaskCentre(const cv::Mat_<unsigned char> mask, int totalArea);
 void arrowedLine(Mat3b img, cv::Point pt1, cv::Point pt2, const cv::Scalar& color,
            int thickness = 1, int line_type = 8, int shift = 0, double tipLength = 0.1);
 
@@ -204,13 +204,13 @@ static void annotateMotion(const Mat1i & motionInput, Mat3b & visual) {
 	Mat1i motion(cv::Size(motionInput.cols + 2, motionInput.rows + 2), CV_32SC1);
 	motion = NOT_FOUND;
 	motionInput.copyTo(motion(cv::Rect(cv::Point(1, 1), motionInput.size())));
-	int regionIndex = 2;
+	int regionIndex = 0;
 	cv::Mat_<unsigned char> mask(cv::Size(motion.cols + 2, motion.rows + 2), CV_8UC1);
 	mask = 0;
 	const int minArea = 50;
 	const int maxContourIndex = 255;
-	for (int y = 1; y < motion.rows - 1 && regionIndex <= maxContourIndex; y++) {
-		for (int x = 1; x < motion.cols - 1 && regionIndex <= maxContourIndex; x++) {
+	for (int y = 1; y < motion.rows - 1; y++) {
+		for (int x = 1; x < motion.cols - 1; x++) {
 			if (mask(y + 1, x + 1)) {
 				continue;
 			}
@@ -227,21 +227,20 @@ static void annotateMotion(const Mat1i & motionInput, Mat3b & visual) {
 					cv::Scalar(), // loDiff
 					cv::Scalar(), // upDiff
 					4  // connectivity
-					| (regionIndex << 8) // mask value
+					| (2 << 8) // mask value
 					| cv::FLOODFILL_MASK_ONLY
 					);
 			std::cout << "Found region with area " << area << " at (" << x << ", " << y << "), "
 				"motion = " << currentMotion << "\n";
+			cv::Mat_<unsigned char> currentMask = (mask == 2);
 			if (area < minArea) {
 				// Too small for contour, fill instead
-				cv::Mat_<unsigned char> currentMask = (mask == regionIndex);
-				mask.setTo(1, currentMask);
 				contourVis.setTo(palette[paletteIndex],
 					currentMask(cv::Rect(cv::Point(2, 2), mask.size() - cv::Size(4, 4))));
 				paletteIndex = (paletteIndex + 1) % palette.size();
 			} else {
 				// Draw arrow
-				cv::Point centrePoint = findMaskCentre(mask, regionIndex, area);
+				cv::Point centrePoint = findMaskCentre(mask, area);
 				cv::Scalar colour = palette[regionIndex % palette.size()];
 				arrowedLine(contourVis, centrePoint + cv::Point(0, currentMotion),
 						centrePoint, colour);
@@ -255,20 +254,16 @@ static void annotateMotion(const Mat1i & motionInput, Mat3b & visual) {
 						cv::FONT_HERSHEY_PLAIN,	1, colour);
 				std::cout << "(" << centrePoint.x << ", " << centrePoint.y << ") " << text << "\n";
 
-				// Find contours
-
-
+				// Find and draw contours
+				std::vector<std::vector<cv::Point>> contours;
+				findContours(currentMask, contours, CV_RETR_LIST, CV_CHAIN_APPROX_SIMPLE);
+				drawContours(contourVis, contours, -1, colour,
+						1, 8, cv::noArray(), INT_MAX, cv::Point(-2, -2));
 				regionIndex++;
 			}
+			// Mark done areas
+			mask.setTo(1, currentMask);
 		}
-	}
-
-	// Find contours of each area and draw them
-	for (int i = 2; i < regionIndex; i++) {
-		std::vector<std::vector<cv::Point>> contours;
-		findContours(cv::Mat(mask == i), contours, CV_RETR_LIST, CV_CHAIN_APPROX_SIMPLE);
-		drawContours(contourVis, contours, -1, palette[i % palette.size()],
-				1, 8, cv::noArray(), INT_MAX, cv::Point(-2, -2));
 	}
 
 	// Blend with destination
@@ -281,11 +276,11 @@ static void annotateMotion(const Mat1i & motionInput, Mat3b & visual) {
 	}
 }
 
-static cv::Point findMaskCentre(const cv::Mat_<unsigned char> mask, int value, int totalArea) {
+static cv::Point findMaskCentre(const cv::Mat_<unsigned char> mask, int totalArea) {
 	int64_t sumX = 0, sumY = 0;
 	for (int y = 0; y < mask.rows; y++) {
 		for (int x = 0; x < mask.cols; x++) {
-			if (mask(y, x) == value) {
+			if (mask(y, x) == 2) {
 				sumX += x;
 				sumY += y;
 			}
