@@ -9,19 +9,23 @@
 
 typedef cv::Mat_<cv::Vec3b> Mat3b;
 typedef cv::Mat_<int> Mat1i;
+typedef unsigned char uchar;
 
 static Mat3b convertInput(const char * label, cv::Mat & input, const cv::Size & size);
-static int expandRight(const Mat3b & m1, const Mat3b & m2, const cv::Rect sourceRect, int dy);
 static void paintSubBlockLine(Mat1i & motion, const Mat3b & m1, const Mat3b & m2,
-		const cv::Point & start, const cv::Point & step);
-static unsigned char bgrToGrey(const cv::Vec3b & bgr);
+		const cv::Point & start, const cv::Point & step, int brushWidth);
+static int getStrongConsensus(const cv::Mat1i & block);
+static int getWeakConsensus(const cv::Mat1i & block);
+static uchar bgrToGrey(const cv::Vec3b & bgr);
+static cv::Vec3b bgrToFadedGreyBgr(const cv::Vec3b & bgr);
 static Mat1i scaleUpMotion(Mat1i & blockMotion, int blockSize, const cv::Size & destSize);
 static void annotateMotion(const Mat1i & motion, Mat3b & visual);
-static cv::Point findMaskCentre(const cv::Mat_<unsigned char> mask, int totalArea);
+static cv::Point findMaskCentre(const cv::Mat_<uchar> mask, int totalArea);
 void arrowedLine(Mat3b img, cv::Point pt1, cv::Point pt2, const cv::Scalar& color,
            int thickness = 1, int line_type = 8, int shift = 0, double tipLength = 0.1);
 
 static const int NOT_FOUND = 0x7fffffff;
+static const int INVALID = NOT_FOUND - 1;
 
 int main(int argc, char** argv) {
 	if (argc < 4) {
@@ -44,6 +48,9 @@ int main(int argc, char** argv) {
 
 	const int blockSize = 16;
 	const int windowSize = 200;
+	const int brushWidth = 9;
+	const int outerHighlightWindow = 21;
+	const int innerHighlightWindow = 5;
 
 	// Calculate block motion by exhaustive search
 	std::cout << "Searching for motion...\n";
@@ -59,19 +66,19 @@ int main(int argc, char** argv) {
 	// Expand block motion into sub-block NOT_FOUND regions
 	for (int y = 0; y < bob.rows; y++) {
 		// Paint right
-		paintSubBlockLine(motion, bob, alice, cv::Point(0, y), cv::Point(1, 0));
+		paintSubBlockLine(motion, bob, alice, cv::Point(0, y), cv::Point(1, 0), brushWidth);
 		// Paint left
-		paintSubBlockLine(motion, bob, alice, cv::Point(bob.cols - 1, y), cv::Point(-1, 0));
+		paintSubBlockLine(motion, bob, alice, cv::Point(bob.cols - 1, y), cv::Point(-1, 0), brushWidth);
 	}
 	for (int x = 0; x < bob.cols; x++) {
 		// Paint down
-		paintSubBlockLine(motion, bob, alice, cv::Point(x, 0), cv::Point(0, 1));
+		paintSubBlockLine(motion, bob, alice, cv::Point(x, 0), cv::Point(0, 1), brushWidth);
 		// Paint up
-		paintSubBlockLine(motion, bob, alice, cv::Point(x, bob.rows - 1), cv::Point(0, -1));
+		paintSubBlockLine(motion, bob, alice, cv::Point(x, bob.rows - 1), cv::Point(0, -1), brushWidth);
 	}
 	cv::imwrite("/tmp/imagediff/postpaint.png", motion * 10 + 128);
 
-	std::cout << "Generating visualization\n";
+	std::cout << "Calculating residuals\n";
 
 	// Prepare moved image
 	Mat3b moved(bob.rows, bob.cols, CV_8UC3);
@@ -89,32 +96,62 @@ int main(int argc, char** argv) {
 		}
 	}
 
-	// Compute visualisation and motion residuals
+	// Compute residual visualisation
 	Mat3b visual(sharedSize, CV_8UC3);
 	visual.setTo(cv::Vec3b(128, 128, 128));
 	int residualArea = 0;
+	cv::Mat_<uchar> residualMask(sharedSize, CV_8UC1);
 	for (int y = 0; y < bob.rows; y++) {
 		for (int x = 0; x < bob.cols; x++) {
 			if (moved(y, x) == bob(y, x)) {
-				unsigned char level = 127 + bgrToGrey(moved(y, x)) / 2;
-				visual(y, x) = cv::Vec3b(level, level, level);
+				visual(y, x) = bgrToFadedGreyBgr(moved(y, x));
 			} else if (motion(y, x) == NOT_FOUND) {
 				cv::Vec3b ac = alice(y, x);
 				cv::Vec3b bc = bob(y, x);
 				if (ac == bc) {
-					visual(y, x) = ac;
+					visual(y, x) = bgrToFadedGreyBgr(ac);
 				} else {
 					visual(y, x) = cv::Vec3b(0, bgrToGrey(bc), bgrToGrey(ac));
 					residualArea ++;
+					residualMask(y, x) = 1;
+
 				}
 			} else {
 				cv::Vec3b mc = moved(y, x);
 				cv::Vec3b bc = bob(y, x);
 				visual(y, x) = cv::Vec3b(0, bgrToGrey(bc), bgrToGrey(mc));
 				residualArea ++;
+				residualMask(y, x) = 1;
 			}
 		}
 	}
+
+	// Highlight isolated residual pixels
+	cv::Point innerHighlightVec(innerHighlightWindow, innerHighlightWindow);
+	cv::Point outerHighlightVec(outerHighlightWindow, outerHighlightWindow);
+	innerHighlightVec = (innerHighlightVec - cv::Point(1, 1)) * 0.5;
+	outerHighlightVec = (outerHighlightVec - cv::Point(1, 1)) * 0.5;
+	cv::Rect bounds(cv::Point(), sharedSize);
+	cv::Rect innerBounds(innerHighlightVec, cv::Point(sharedSize) - innerHighlightVec);
+	for (int y = innerBounds.y; y < innerBounds.y + innerBounds.height; y++) {
+		for (int x = innerBounds.x; x < innerBounds.x + innerBounds.width; x++) {
+			cv::Point pos(y, x);
+			cv::Rect innerRect = cv::Rect(pos - innerHighlightVec, pos + innerHighlightVec);
+			cv::Rect outerRect = cv::Rect(pos - outerHighlightVec, pos + outerHighlightVec);
+			innerRect &= bounds;
+			outerRect &= bounds;
+			int innerArea = cv::countNonZero(residualMask(innerRect));
+			int outerArea = cv::countNonZero(residualMask(outerRect));
+			if (innerArea != 0 && innerArea == outerArea) {
+				cv::circle(visual, pos,
+						std::min(10, innerHighlightWindow * 2),
+						cv::Scalar(0, 0xff, 0xff), 2);
+				residualMask(innerRect) = 0;
+			}
+		}
+	}
+
+	std::cout << "Annotating motion\n";
 
 	// Draw motion annotations
 	annotateMotion(motion, visual);
@@ -128,11 +165,16 @@ int main(int argc, char** argv) {
 	std::cout << "Residual: " << residualArea << " pixels\n";
 }
 
-static unsigned char bgrToGrey(const cv::Vec3b & bgr) {
-	return cv::saturate_cast<unsigned char>(
+static uchar bgrToGrey(const cv::Vec3b & bgr) {
+	return cv::saturate_cast<uchar>(
 			76 * bgr[2] / 255     // Blue
 			+ 150 * bgr[1] / 255  // Green
 			+ 29 * bgr[0] / 255); // Red
+}
+
+static cv::Vec3b bgrToFadedGreyBgr(const cv::Vec3b & bgr) {
+	uchar value = 127 + bgrToGrey(bgr) / 2;
+	return cv::Vec3b(value, value, value);
 }
 
 static Mat3b convertInput(const char * label, cv::Mat & input, const cv::Size & size) {
@@ -173,22 +215,76 @@ static Mat1i scaleUpMotion(Mat1i & blockMotion, int blockSize, const cv::Size & 
 }
 
 static void paintSubBlockLine(Mat1i & motion, const Mat3b & m1, const Mat3b & m2,
-		const cv::Point & start, const cv::Point & step)
+		const cv::Point & start, const cv::Point & step, int brushWidth)
 {
+	int halfWidth = (brushWidth - 1) / 2;
+	cv::Point brushStep(step.y, step.x);
+	cv::Point halfWidthVector = halfWidth * brushStep;
 	cv::Point pos = start;
 	cv::Rect bounds(cv::Point(), motion.size());
-	int prevMotion = NOT_FOUND;
+	int prevConsensus = NOT_FOUND;
 	while (bounds.contains(pos)) {
-		int curMotion = motion.at<int>(pos);
-		if (curMotion == NOT_FOUND && prevMotion != NOT_FOUND) {
-			cv::Point destPos = pos + cv::Point(0, prevMotion);
-			if (bounds.contains(destPos) && m1(pos) == m2(destPos)) {
-				motion.at<int>(pos) = prevMotion;
+		cv::Rect roiRect(pos - halfWidthVector, pos + halfWidthVector + cv::Point(1, 1));
+		if ((roiRect & bounds) != roiRect) {
+			break;
+		}
+		cv::Mat1i roiBlock = motion(roiRect);
+
+		int curConsensus = getWeakConsensus(roiBlock);
+
+		// Paint the current step
+		if (prevConsensus != NOT_FOUND && prevConsensus != INVALID
+				&& (curConsensus == NOT_FOUND || curConsensus == prevConsensus))
+		{
+			for (int b = -halfWidth; b <= halfWidth; b++) {
+				cv::Point srcPos = pos + b * brushStep;
+				cv::Point destPos = srcPos + cv::Point(0, prevConsensus);
+				if (bounds.contains(destPos) && m1(srcPos) == m2(destPos)) {
+					motion.at<int>(srcPos) = prevConsensus;
+				}
 			}
 		}
-		prevMotion = motion.at<int>(pos);
+
+		prevConsensus = getStrongConsensus(roiBlock);
 		pos += step;
 	}
+}
+
+/**
+ * Get the value of all elements in the block, or INVALID if they are not all
+ * the same.
+ */
+static int getStrongConsensus(const cv::Mat1i & block) {
+	int consensus = block(0, 0);
+	for (int y = 0; y < block.rows; y++) {
+		for (int x = 0; x < block.cols; x++) {
+			if (block(y, x) != consensus) {
+				return INVALID;
+			}
+		}
+	}
+	return consensus;
+}
+
+/**
+ * Get the value of all elements of the block, or INVALID if they are not all
+ * the same, except for NOT_FOUND elements which are ignored. If all elements
+ * are NOT_FOUND, NOT_FOUND is returned.
+ */
+static int getWeakConsensus(const cv::Mat1i & block) {
+	int consensus = NOT_FOUND;
+	for (int y = 0; y < block.rows; y++) {
+		for (int x = 0; x < block.cols; x++) {
+			int v = block(y, x);
+			if (v != consensus && v != NOT_FOUND) {
+				return INVALID;
+			}
+			if (v != NOT_FOUND) {
+				consensus = v;
+			}
+		}
+	}
+	return consensus;
 }
 
 static void annotateMotion(const Mat1i & motionInput, Mat3b & visual) {
@@ -205,10 +301,9 @@ static void annotateMotion(const Mat1i & motionInput, Mat3b & visual) {
 	motion = NOT_FOUND;
 	motionInput.copyTo(motion(cv::Rect(cv::Point(1, 1), motionInput.size())));
 	int regionIndex = 0;
-	cv::Mat_<unsigned char> mask(cv::Size(motion.cols + 2, motion.rows + 2), CV_8UC1);
+	cv::Mat_<uchar> mask(cv::Size(motion.cols + 2, motion.rows + 2), CV_8UC1);
 	mask = 0;
 	const int minArea = 50;
-	const int maxContourIndex = 255;
 	for (int y = 1; y < motion.rows - 1; y++) {
 		for (int x = 1; x < motion.cols - 1; x++) {
 			if (mask(y + 1, x + 1)) {
@@ -232,7 +327,7 @@ static void annotateMotion(const Mat1i & motionInput, Mat3b & visual) {
 					);
 			std::cout << "Found region with area " << area << " at (" << x << ", " << y << "), "
 				"motion = " << currentMotion << "\n";
-			cv::Mat_<unsigned char> currentMask = (mask == 2);
+			cv::Mat_<uchar> currentMask = (mask == 2);
 			if (area < minArea) {
 				// Too small for contour, fill instead
 				contourVis.setTo(palette[paletteIndex],
@@ -276,8 +371,8 @@ static void annotateMotion(const Mat1i & motionInput, Mat3b & visual) {
 	}
 }
 
-static cv::Point findMaskCentre(const cv::Mat_<unsigned char> mask, int totalArea) {
-	int64_t sumX = 0, sumY = 0;
+static cv::Point findMaskCentre(const cv::Mat_<uchar> mask, int totalArea) {
+	int sumX = 0, sumY = 0;
 	for (int y = 0; y < mask.rows; y++) {
 		for (int x = 0; x < mask.cols; x++) {
 			if (mask(y, x) == 2) {
@@ -286,7 +381,7 @@ static cv::Point findMaskCentre(const cv::Mat_<unsigned char> mask, int totalAre
 			}
 		}
 	}
-	return cv::Point(int(sumX / totalArea), int(sumY / totalArea));
+	return cv::Point(sumX / totalArea, sumY / totalArea);
 }
 
 /**

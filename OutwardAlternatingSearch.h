@@ -27,6 +27,7 @@ class OutwardAlternatingSearch {
 			if (m_distance > m_window) {
 				m_done = true;
 			}
+			return *this;
 		}
 
 		operator bool() {

@@ -1,4 +1,4 @@
-CFLAGS=-g -std=c++11
+CFLAGS=-g -std=c++11 -Wall
 
 imagediff:
 	g++ $(CFLAGS) imagediff.cpp BlockMotionSearch.cpp \
