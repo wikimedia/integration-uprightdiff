@@ -4,12 +4,14 @@
 #include <cstdlib>
 #include <iostream>
 #include <cmath>
+#include <limits>
 
 #include "BlockMotionSearch.h"
 
+typedef unsigned char uchar;
 typedef cv::Mat_<cv::Vec3b> Mat3b;
 typedef cv::Mat_<int> Mat1i;
-typedef unsigned char uchar;
+typedef cv::Mat_<uchar> Mat1b;
 
 static Mat3b convertInput(const char * label, cv::Mat & input, const cv::Size & size);
 static void paintSubBlockLine(Mat1i & motion, const Mat3b & m1, const Mat3b & m2,
@@ -20,11 +22,11 @@ static uchar bgrToGrey(const cv::Vec3b & bgr);
 static cv::Vec3b bgrToFadedGreyBgr(const cv::Vec3b & bgr);
 static Mat1i scaleUpMotion(Mat1i & blockMotion, int blockSize, const cv::Size & destSize);
 static void annotateMotion(const Mat1i & motion, Mat3b & visual);
-static cv::Point findMaskCentre(const cv::Mat_<uchar> mask, int totalArea);
-void arrowedLine(Mat3b img, cv::Point pt1, cv::Point pt2, const cv::Scalar& color,
+static cv::Point findMaskCentre(const Mat1b & mask, int totalArea);
+static void arrowedLine(Mat3b img, cv::Point pt1, cv::Point pt2, const cv::Scalar& color,
            int thickness = 1, int line_type = 8, int shift = 0, double tipLength = 0.1);
 
-static const int NOT_FOUND = 0x7fffffff;
+static const int NOT_FOUND = std::numeric_limits<int>::max();
 static const int INVALID = NOT_FOUND - 1;
 
 int main(int argc, char** argv) {
@@ -55,7 +57,6 @@ int main(int argc, char** argv) {
 	// Calculate block motion by exhaustive search
 	std::cout << "Searching for motion...\n";
 	Mat1i blockMotion = BlockMotionSearch::Search(bob, alice, blockSize, windowSize);
-	
 
 	// Scale up block motion matrix
 	Mat1i motion = scaleUpMotion(blockMotion, blockSize, sharedSize);
@@ -81,8 +82,7 @@ int main(int argc, char** argv) {
 	std::cout << "Calculating residuals\n";
 
 	// Prepare moved image
-	Mat3b moved(bob.rows, bob.cols, CV_8UC3);
-	moved.setTo(cv::Vec3b(255, 0, 255));
+	Mat3b moved(bob.rows, bob.cols, cv::Vec3b(255, 0, 255));
 	for (int y = 0; y < bob.rows; y++) {
 		for (int x = 0; x < bob.cols; x++) {
 			int dy = motion(y, x);
@@ -97,10 +97,9 @@ int main(int argc, char** argv) {
 	}
 
 	// Compute residual visualisation
-	Mat3b visual(sharedSize, CV_8UC3);
-	visual.setTo(cv::Vec3b(128, 128, 128));
+	Mat3b visual(sharedSize, cv::Vec3b(128, 128, 128));
 	int residualArea = 0;
-	cv::Mat_<uchar> residualMask(sharedSize, CV_8UC1);
+	Mat1b residualMask(sharedSize, uchar(0));
 	for (int y = 0; y < bob.rows; y++) {
 		for (int x = 0; x < bob.cols; x++) {
 			if (moved(y, x) == bob(y, x)) {
@@ -182,16 +181,14 @@ static Mat3b convertInput(const char * label, cv::Mat & input, const cv::Size & 
 		std::cout << "The " << label << " image is invalid or has the wrong pixel type\n";
 		std::exit(1);
 	}
-	Mat3b ret(size, CV_8UC3);
-	ret.setTo(cv::Vec3b(128, 128, 128));
+	Mat3b ret(size, cv::Vec3b(128, 128, 128));
 	input.copyTo(ret(cv::Rect(cv::Point(), input.size())));
 	return ret;
 }
 
 static Mat1i scaleUpMotion(Mat1i & blockMotion, int blockSize, const cv::Size & destSize) {
-	Mat1i motion(destSize, CV_32SC1);
-	Mat1i notFound(1, 1, CV_32SC1);
-	notFound(0, 0) = NOT_FOUND;
+	Mat1i motion(destSize);
+	Mat1i notFound(1, 1, NOT_FOUND);
 	int x, y, xIndex, yIndex;
 	for (y = 0, yIndex = 0; yIndex < blockMotion.rows; yIndex++, y += blockSize) {
 		for (x = 0, xIndex = 0; xIndex < blockMotion.cols; xIndex++, x += blockSize) {
@@ -288,7 +285,7 @@ static int getWeakConsensus(const cv::Mat1i & block) {
 }
 
 static void annotateMotion(const Mat1i & motionInput, Mat3b & visual) {
-	Mat3b contourVis = cv::Mat::zeros(visual.size(), CV_8UC3);
+	Mat3b contourVis(visual.size(), cv::Vec3b());
 
 	std::vector<cv::Scalar> palette;
 	palette.push_back(cv::Scalar(0xff, 0x00, 0x00));
@@ -297,12 +294,10 @@ static void annotateMotion(const Mat1i & motionInput, Mat3b & visual) {
 	int paletteIndex = 0;
 
 	// Find motion regions by flood filling
-	Mat1i motion(cv::Size(motionInput.cols + 2, motionInput.rows + 2), CV_32SC1);
-	motion = NOT_FOUND;
+	Mat1i motion(cv::Size(motionInput.cols + 2, motionInput.rows + 2), NOT_FOUND);
 	motionInput.copyTo(motion(cv::Rect(cv::Point(1, 1), motionInput.size())));
 	int regionIndex = 0;
-	cv::Mat_<uchar> mask(cv::Size(motion.cols + 2, motion.rows + 2), CV_8UC1);
-	mask = 0;
+	Mat1b mask(cv::Size(motion.cols + 2, motion.rows + 2), uchar(0));
 	const int minArea = 50;
 	for (int y = 1; y < motion.rows - 1; y++) {
 		for (int x = 1; x < motion.cols - 1; x++) {
@@ -325,9 +320,7 @@ static void annotateMotion(const Mat1i & motionInput, Mat3b & visual) {
 					| (2 << 8) // mask value
 					| cv::FLOODFILL_MASK_ONLY
 					);
-			std::cout << "Found region with area " << area << " at (" << x << ", " << y << "), "
-				"motion = " << currentMotion << "\n";
-			cv::Mat_<uchar> currentMask = (mask == 2);
+			Mat1b currentMask = (mask == 2);
 			if (area < minArea) {
 				// Too small for contour, fill instead
 				contourVis.setTo(palette[paletteIndex],
@@ -347,7 +340,6 @@ static void annotateMotion(const Mat1i & motionInput, Mat3b & visual) {
 				cv::putText(contourVis, text,
 						centrePoint + cv::Point(2, currentMotion / 2 + textSize.height / 2),
 						cv::FONT_HERSHEY_PLAIN,	1, colour);
-				std::cout << "(" << centrePoint.x << ", " << centrePoint.y << ") " << text << "\n";
 
 				// Find and draw contours
 				std::vector<std::vector<cv::Point>> contours;
@@ -371,7 +363,7 @@ static void annotateMotion(const Mat1i & motionInput, Mat3b & visual) {
 	}
 }
 
-static cv::Point findMaskCentre(const cv::Mat_<uchar> mask, int totalArea) {
+static cv::Point findMaskCentre(const Mat1b & mask, int totalArea) {
 	int sumX = 0, sumY = 0;
 	for (int y = 0; y < mask.rows; y++) {
 		for (int x = 0; x < mask.cols; x++) {
@@ -388,10 +380,11 @@ static cv::Point findMaskCentre(const cv::Mat_<uchar> mask, int totalArea) {
  * This is a copy of cv::arrowedLine(), which wasn't available in the version of
  * OpenCV I was linking to.
  */
-void arrowedLine(Mat3b img, cv::Point pt1, cv::Point pt2, const cv::Scalar& color,
+static void arrowedLine(Mat3b img, cv::Point pt1, cv::Point pt2, const cv::Scalar& color,
            int thickness, int line_type, int shift, double tipLength)
 {
-    const double tipSize = cv::norm(pt1-pt2)*tipLength; // Factor to normalize the size of the tip depending on the length of the arrow
+	 // Factor to normalize the size of the tip depending on the length of the arrow
+    const double tipSize = std::max(3.0, cv::norm(pt1-pt2)*tipLength);
 
 	cv::line(img, pt1, pt2, color, thickness, line_type, shift);
 
