@@ -17,7 +17,7 @@ public:
 		int innerHighlightWindow = 5;
 		std::string intermediateDir;
 		std::ostream * logStream = nullptr;
-		int logLevel = Logger::INFO;
+		int logLevel = Logger::FATAL;
 		bool logTimestamp = false;
 	};
 

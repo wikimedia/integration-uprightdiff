@@ -5,6 +5,7 @@ imagediff:
 		-lopencv_highgui \
 		-lopencv_core \
 		-lopencv_imgproc \
+		-lboost_program_options \
 		-o imagediff
 
 linehash:
