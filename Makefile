@@ -1,6 +1,11 @@
 CFLAGS=-g -std=c++11 -Wall
+PREFIX=/usr/local
 
 all: uprightdiff
+
+install: all
+	install -d $(PREFIX)/bin
+	install -s uprightdiff $(PREFIX)/bin/uprightdiff
 
 uprightdiff:
 	g++ $(CFLAGS) main.cpp BlockMotionSearch.cpp UprightDiff.cpp \

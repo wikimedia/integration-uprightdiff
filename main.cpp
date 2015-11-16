@@ -67,19 +67,19 @@ bool processCommandLine(int argc, char** argv,
 		("help",
 		 	"Show help message and exit")
 		("block-size", po::value<int>(&diffOptions.blockSize),
-			"Block size for initial search")
+			"Block size for initial search (default 16)")
 		("window-size", po::value<int>(&diffOptions.windowSize),
-			"Initial range for vertical motion detection")
+			"Initial range for vertical motion detection (default 200)")
 		("brush-width", po::value<int>(&diffOptions.brushWidth),
 		 	"Brush width when heuristically expanding blocks. "
 			"A higher value gives smoother motion regions. "
-			"This should be an odd number.")
+			"This should be an odd number. (default 9)")
 		("outer-hl-window", po::value<int>(&diffOptions.outerHighlightWindow),
 			"The size of the outer square used for detecting isolated small features to highlight. "
-			"This size defines what we mean by \"isolated\". It should be an odd number.")
+			"This size defines what we mean by \"isolated\". It should be an odd number. (default 21)")
 		("inner-hl-window", po::value<int>(&diffOptions.innerHighlightWindow),
 		 	"The size of the inner square used for detecting isolated small features to highlight. "
-			"This size defines what we mean by \"small\". It should be an odd number.")
+			"This size defines what we mean by \"small\". It should be an odd number. (default 5)")
 		("intermediate-dir", po::value<std::string>(&diffOptions.intermediateDir),
 		 	"A directory where intermediate images should be placed. "
 			"This is our equivalent of debug or trace output.")
@@ -87,7 +87,7 @@ bool processCommandLine(int argc, char** argv,
 		 	"Write progress info to stderr.")
 		("format", po::value<std::string>(&format),
 		 	"The output format for statistics, may be text (the default), json or none.")
-		("log-timestamp", po::bool_switch(&diffOptions.logTimestamp),
+		("log-timestamp,t", po::bool_switch(&diffOptions.logTimestamp),
 		 	"Annotate progress info with timestamps.")
 		;
 
