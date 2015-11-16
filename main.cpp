@@ -3,7 +3,7 @@
 #include <boost/program_options.hpp>
 #include <opencv2/highgui/highgui.hpp>
 
-#include "ImageDiff.h"
+#include "UprightDiff.h"
 
 namespace po = boost::program_options;
 
@@ -19,11 +19,11 @@ struct MainOptions {
 	std::string destName;
 };
 bool processCommandLine(int argc, char** argv,
-		MainOptions & mainOptions, ImageDiff::Options & diffOptions);
+		MainOptions & mainOptions, UprightDiff::Options & diffOptions);
 
 int main(int argc, char** argv) {
 	MainOptions mainOptions;
-	ImageDiff::Options diffOptions;
+	UprightDiff::Options diffOptions;
 
 	try {
 		if (!processCommandLine(argc, argv, mainOptions, diffOptions)) {
@@ -36,10 +36,10 @@ int main(int argc, char** argv) {
 
 	cv::Mat alice = cv::imread(mainOptions.aliceName);
 	cv::Mat bob = cv::imread(mainOptions.bobName);
-	ImageDiff::Output output;
+	UprightDiff::Output output;
 
 	try {
-		ImageDiff::Diff(alice, bob, diffOptions, output);
+		UprightDiff::Diff(alice, bob, diffOptions, output);
 	} catch (std::runtime_error & e) {
 		std::cerr << "Error: " << e.what() << "\n";
 		return 1;
@@ -59,7 +59,7 @@ int main(int argc, char** argv) {
 }
 
 bool processCommandLine(int argc, char** argv,
-		MainOptions & mainOptions, ImageDiff::Options & diffOptions)
+		MainOptions & mainOptions, UprightDiff::Options & diffOptions)
 {
 	po::options_description visible;
 	std::string format;
@@ -116,7 +116,7 @@ bool processCommandLine(int argc, char** argv,
 	po::notify(vm);
 
 	if (vm.count("help")) {
-		std::cout << "Usage: " << (argc >= 1 ? argv[0] : "" )
+		std::cout << "Usage: " << (argc >= 1 ? argv[0] : "uprightdiff" )
 			<< " [options] <input-1> <input-2> <output>\n"
 			<< "Accepted options are:\n"
 			<< visible;

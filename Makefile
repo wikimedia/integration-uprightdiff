@@ -1,12 +1,14 @@
 CFLAGS=-g -std=c++11 -Wall
 
-imagediff:
-	g++ $(CFLAGS) main.cpp BlockMotionSearch.cpp ImageDiff.cpp \
+all: uprightdiff
+
+uprightdiff:
+	g++ $(CFLAGS) main.cpp BlockMotionSearch.cpp UprightDiff.cpp \
 		-lopencv_highgui \
 		-lopencv_core \
 		-lopencv_imgproc \
 		-lboost_program_options \
-		-o imagediff
+		-o uprightdiff
 
 linehash:
 	g++ $(CFLAGS) linehash.cpp \

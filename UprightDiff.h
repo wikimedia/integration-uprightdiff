@@ -2,7 +2,7 @@
 #include <iostream>
 #include "Logger.h"
 
-class ImageDiff {
+class UprightDiff {
 public:
 	typedef unsigned char uchar;
 	typedef cv::Mat_<cv::Vec3b> Mat3b;
@@ -37,7 +37,7 @@ public:
 			Output & output);
 
 private:
-	ImageDiff(const cv::Mat & alice, const cv::Mat & bob, const Options & options,
+	UprightDiff(const cv::Mat & alice, const cv::Mat & bob, const Options & options,
 			Output & output);
 
 	void execute();

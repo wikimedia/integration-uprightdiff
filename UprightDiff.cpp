@@ -5,24 +5,24 @@
 #include <cmath>
 #include <stdexcept>
 
-#include "ImageDiff.h"
+#include "UprightDiff.h"
 #include "BlockMotionSearch.h"
 
-typedef ImageDiff::uchar uchar;
-typedef ImageDiff::Mat3b Mat3b;
-typedef ImageDiff::Mat1i Mat1i;
-typedef ImageDiff::Mat1b Mat1b;
+typedef UprightDiff::uchar uchar;
+typedef UprightDiff::Mat3b Mat3b;
+typedef UprightDiff::Mat1i Mat1i;
+typedef UprightDiff::Mat1b Mat1b;
 
-void ImageDiff::Diff(const cv::Mat & alice, const cv::Mat & bob, const Options & options,
+void UprightDiff::Diff(const cv::Mat & alice, const cv::Mat & bob, const Options & options,
 		Output & output) {
-	ImageDiff imagediff(alice, bob, options, output);
-	imagediff.execute();
-	imagediff.m_alice.release();
-	imagediff.m_bob.release();
-	imagediff.m_motion.release();
+	UprightDiff uprightDiff(alice, bob, options, output);
+	uprightDiff.execute();
+	uprightDiff.m_alice.release();
+	uprightDiff.m_bob.release();
+	uprightDiff.m_motion.release();
 }
 
-ImageDiff::ImageDiff(
+UprightDiff::UprightDiff(
 		const cv::Mat & alice,
 		const cv::Mat & bob,
 		const Options & options,
@@ -40,7 +40,7 @@ ImageDiff::ImageDiff(
 	m_bob = ConvertInput("second", bob, m_size);
 }
 
-void ImageDiff::execute() {
+void UprightDiff::execute() {
 	calculateMaskArea();
 
 	// Calculate block motion by exhaustive search
@@ -81,7 +81,7 @@ void ImageDiff::execute() {
 	info() << "Done\n";
 }
 
-Mat3b ImageDiff::ConvertInput(const char * label, const cv::Mat & input, const cv::Size & size) {
+Mat3b UprightDiff::ConvertInput(const char * label, const cv::Mat & input, const cv::Size & size) {
 	if (input.type() != CV_8UC3) {
 		throw std::runtime_error(std::string("The ") + label +
 				" image is invalid or has the wrong pixel type\n");
@@ -91,7 +91,7 @@ Mat3b ImageDiff::ConvertInput(const char * label, const cv::Mat & input, const c
 	return ret;
 }
 
-void ImageDiff::calculateMaskArea() {
+void UprightDiff::calculateMaskArea() {
 	Mat1b mask(m_size, 0);
 	for (int y = 0; y < m_size.height; y++) {
 		for (int x = 0; x < m_size.width; x++) {
@@ -104,7 +104,7 @@ void ImageDiff::calculateMaskArea() {
 	m_output.maskArea = cv::countNonZero(mask);
 }
 
-Mat1i ImageDiff::ScaleUpMotion(Mat1i & blockMotion, int blockSize, const cv::Size & destSize) {
+Mat1i UprightDiff::ScaleUpMotion(Mat1i & blockMotion, int blockSize, const cv::Size & destSize) {
 	Mat1i motion(destSize);
 	Mat1i notFound(1, 1, NOT_FOUND);
 	int x, y, xIndex, yIndex;
@@ -129,7 +129,7 @@ Mat1i ImageDiff::ScaleUpMotion(Mat1i & blockMotion, int blockSize, const cv::Siz
 	return motion;
 }
 
-void ImageDiff::paintSubBlockLine(const cv::Point & start, const cv::Point & step) {
+void UprightDiff::paintSubBlockLine(const cv::Point & start, const cv::Point & step) {
 	int halfWidth = (m_options.brushWidth - 1) / 2;
 	cv::Point brushStep(step.y, step.x);
 	cv::Point halfWidthVector = halfWidth * brushStep;
@@ -163,14 +163,14 @@ void ImageDiff::paintSubBlockLine(const cv::Point & start, const cv::Point & ste
 	}
 }
 
-uchar ImageDiff::BgrToGrey(const cv::Vec3b & bgr) {
+uchar UprightDiff::BgrToGrey(const cv::Vec3b & bgr) {
 	return cv::saturate_cast<uchar>(
 			76 * bgr[2] / 255     // Blue
 			+ 150 * bgr[1] / 255  // Green
 			+ 29 * bgr[0] / 255); // Red
 }
 
-cv::Vec3b ImageDiff::BgrToFadedGreyBgr(const cv::Vec3b & bgr) {
+cv::Vec3b UprightDiff::BgrToFadedGreyBgr(const cv::Vec3b & bgr) {
 	uchar value = 127 + BgrToGrey(bgr) / 2;
 	return cv::Vec3b(value, value, value);
 }
@@ -179,7 +179,7 @@ cv::Vec3b ImageDiff::BgrToFadedGreyBgr(const cv::Vec3b & bgr) {
  * Get the value of all elements in the block, or INVALID if they are not all
  * the same.
  */
-int ImageDiff::GetStrongConsensus(const cv::Mat1i & block) {
+int UprightDiff::GetStrongConsensus(const cv::Mat1i & block) {
 	int consensus = block(0, 0);
 	for (int y = 0; y < block.rows; y++) {
 		for (int x = 0; x < block.cols; x++) {
@@ -196,7 +196,7 @@ int ImageDiff::GetStrongConsensus(const cv::Mat1i & block) {
  * the same, except for NOT_FOUND elements which are ignored. If all elements
  * are NOT_FOUND, NOT_FOUND is returned.
  */
-int ImageDiff::GetWeakConsensus(const cv::Mat1i & block) {
+int UprightDiff::GetWeakConsensus(const cv::Mat1i & block) {
 	int consensus = NOT_FOUND;
 	for (int y = 0; y < block.rows; y++) {
 		for (int x = 0; x < block.cols; x++) {
@@ -212,7 +212,7 @@ int ImageDiff::GetWeakConsensus(const cv::Mat1i & block) {
 	return consensus;
 }
 
-Mat3b ImageDiff::visualizeResidual() {
+Mat3b UprightDiff::visualizeResidual() {
 	// Prepare moved image
 	Mat3b moved(m_size, cv::Vec3b(255, 0, 255));
 	m_output.movedArea = 0;
@@ -300,7 +300,7 @@ Mat3b ImageDiff::visualizeResidual() {
 	return visual;
 }
 
-void ImageDiff::annotateMotion() {
+void UprightDiff::annotateMotion() {
 	Mat3b contourVis(m_output.visual.size(), cv::Vec3b());
 
 	std::vector<cv::Scalar> palette;
@@ -380,7 +380,7 @@ void ImageDiff::annotateMotion() {
 	}
 }
 
-cv::Point ImageDiff::FindMaskCentre(const Mat1b & mask, int totalArea) {
+cv::Point UprightDiff::FindMaskCentre(const Mat1b & mask, int totalArea) {
 	int sumX = 0, sumY = 0;
 	for (int y = 0; y < mask.rows; y++) {
 		for (int x = 0; x < mask.cols; x++) {
@@ -397,7 +397,7 @@ cv::Point ImageDiff::FindMaskCentre(const Mat1b & mask, int totalArea) {
 /**
  * Draw an arrowed line, similar to cv::arrowedLine()
  */
-void ImageDiff::ArrowedLine(Mat3b img, cv::Point pt1, cv::Point pt2, const cv::Scalar& color,
+void UprightDiff::ArrowedLine(Mat3b img, cv::Point pt1, cv::Point pt2, const cv::Scalar& color,
            int thickness, int line_type, int shift, double tipLength)
 {
 	 // Factor to normalize the size of the tip depending on the length of the arrow
@@ -416,13 +416,13 @@ void ImageDiff::ArrowedLine(Mat3b img, cv::Point pt1, cv::Point pt2, const cv::S
 	cv::line(img, p, pt2, color, thickness, line_type, shift);
 }
 
-void ImageDiff::intermediateOutput(const char* label, const cv::MatExpr & expr) {
+void UprightDiff::intermediateOutput(const char* label, const cv::MatExpr & expr) {
 	if (!m_options.intermediateDir.empty()) {
 		intermediateOutput(label, cv::Mat(expr));
 	}
 }
 
-void ImageDiff::intermediateOutput(const char* label, const cv::Mat & m) {
+void UprightDiff::intermediateOutput(const char* label, const cv::Mat & m) {
 	if (!m_options.intermediateDir.empty()) {
 		cv::imwrite(m_options.intermediateDir + "/" + label, m);
 	}
