@@ -107,6 +107,10 @@ Install the dependencies. On Debian/Ubuntu this means:
 
 `sudo apt-get install build-essential g++ libopencv-highgui-dev libboost-program-options-dev`
 
+On Mac OS X with homebrew:
+
+`brew install opencv boost`
+
 Then compile:
 
 `make`
