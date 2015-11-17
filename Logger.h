@@ -1,5 +1,7 @@
 #include <ostream>
 #include <ctime>
+#include <sstream>
+#include <iomanip>
 
 class Logger {
 public:
@@ -43,14 +45,16 @@ public:
 	}
 
 	std::string timestamp() {
-		char buf[100];
-		std::time_t rawTime;
-		time(&rawTime);
-		struct std::tm * timeInfo = localtime(&rawTime);
-		std::strftime(buf, 100, "%F %T ", timeInfo);
-		return std::string(buf);
+		std::clock_t now = clock();
+		std::clock_t totalMillis = now / (CLOCKS_PER_SEC / 1000);
+
+		std::ostringstream buf;
+		buf << std::setw(3) << (totalMillis / 1000) << "."
+		    << std::setfill('0') << std::setw(3) << (totalMillis % 1000)
+			<< " ";
+		return buf.str();
 	}
-	
+
 private:
 	int m_level;
 	bool m_showTimestamp;

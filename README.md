@@ -33,7 +33,7 @@ Accepted options are:
   -v [ --verbose ]        Write progress info to stderr.
   --format arg            The output format for statistics, may be text (the 
                           default), json or none.
-  -t [ --log-timestamp ]  Annotate progress info with timestamps.
+  -t [ --log-timestamp ]  Annotate progress info with elapsed time.
 ```
 
 If you see an error "libdc1394 error: Failed to initialize libdc1394", this can

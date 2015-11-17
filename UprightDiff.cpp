@@ -7,6 +7,7 @@
 
 #include "UprightDiff.h"
 #include "BlockMotionSearch.h"
+#include "RollingBlockCounter.h"
 
 typedef UprightDiff::uchar uchar;
 typedef UprightDiff::Mat3b Mat3b;
@@ -143,22 +144,22 @@ void UprightDiff::paintSubBlockLine(const cv::Point & start, const cv::Point & s
 		}
 		cv::Mat1i roiBlock = m_motion(roiRect);
 
-		int curConsensus = GetWeakConsensus(roiBlock);
-
 		// Paint the current step
-		if (prevConsensus != NOT_FOUND && prevConsensus != INVALID
-				&& (curConsensus == NOT_FOUND || curConsensus == prevConsensus))
-		{
-			for (int b = -halfWidth; b <= halfWidth; b++) {
-				cv::Point srcPos = pos + b * brushStep;
-				cv::Point destPos = srcPos + cv::Point(0, prevConsensus);
-				if (bounds.contains(destPos) && m_bob(srcPos) == m_alice(destPos)) {
-					m_motion.at<int>(srcPos) = prevConsensus;
+		if (prevConsensus != NOT_FOUND && prevConsensus != INVALID) {
+			int curConsensus = GetWeakConsensus(roiBlock);
+			if (curConsensus == NOT_FOUND || curConsensus == prevConsensus) {
+				for (int b = -halfWidth; b <= halfWidth; b++) {
+					cv::Point srcPos = pos + b * brushStep;
+					cv::Point destPos = srcPos + cv::Point(0, prevConsensus);
+					if (bounds.contains(destPos) && m_bob(srcPos) == m_alice(destPos)) {
+						m_motion.at<int>(srcPos) = prevConsensus;
+					}
 				}
 			}
 		}
 
 		prevConsensus = GetStrongConsensus(roiBlock);
+		GetStrongConsensus(roiBlock);
 		pos += step;
 	}
 }
@@ -270,29 +271,38 @@ Mat3b UprightDiff::visualizeResidual() {
 	intermediateOutput("plain-residual", visual);
 
 	// Highlight isolated residual pixels
-	const int ihw = m_options.innerHighlightWindow;
-	const int ohw = m_options.outerHighlightWindow;
-
-	cv::Point innerHighlightVec(ihw, ihw);
-	cv::Point outerHighlightVec(ohw, ohw);
-	innerHighlightVec = (innerHighlightVec - cv::Point(1, 1)) * 0.5;
-	outerHighlightVec = (outerHighlightVec - cv::Point(1, 1)) * 0.5;
-	cv::Rect bounds(cv::Point(), m_size);
-	cv::Rect innerBounds(innerHighlightVec, cv::Point(m_size) - innerHighlightVec);
-	for (int y = innerBounds.y; y < innerBounds.y + innerBounds.height; y++) {
-		for (int x = innerBounds.x; x < innerBounds.x + innerBounds.width; x++) {
-			cv::Point pos(y, x);
-			cv::Rect innerRect = cv::Rect(pos - innerHighlightVec, pos + innerHighlightVec);
-			cv::Rect outerRect = cv::Rect(pos - outerHighlightVec, pos + outerHighlightVec);
-			innerRect &= bounds;
-			outerRect &= bounds;
-			int innerArea = cv::countNonZero(residualMask(innerRect));
-			int outerArea = cv::countNonZero(residualMask(outerRect));
-			if (innerArea != 0 && innerArea == outerArea) {
-				cv::circle(visual, pos,
+	// This is done by maintaining a count of the number of residual pixels in
+	// two concentric blocks. As the block moves, we subtract the row that left
+	// the block, and add the row that entered the block. This is done in
+	// column-major order so that the rows being added or subtracted are
+	// contiguous in memory.
+	int ihw = m_options.innerHighlightWindow;
+	int ihw2 = (ihw - 1) / 2;
+	int ohw = m_options.outerHighlightWindow;
+	for (int cx = 0; cx < m_size.width; cx++) {
+		RollingBlockCounter<Mat1b> innerCounter(residualMask, cx, ihw);
+		RollingBlockCounter<Mat1b> outerCounter(residualMask, cx, ohw);
+		
+		for (int cy = 0; cy < m_size.height; cy++) {
+			int innerCount = innerCounter(cy);
+			int outerCount = outerCounter(cy);
+			if (innerCount != 0 && innerCount == outerCount) {
+				cv::circle(visual, cv::Point(cx, cy),
 						std::min(10, ihw * 2),
 						cv::Scalar(0, 0xff, 0xff), 2);
+				cv::Rect innerRect(
+					cv::Point(
+						std::max(cx - ihw2, 0),
+						std::max(cy - ihw2, 0)
+					),
+					cv::Point(
+						std::min(cx + ihw2 + 1, m_size.width),
+						std::min(cy + ihw2 + 1, m_size.height)
+					)
+				);
 				residualMask(innerRect) = 0;
+				innerCounter.purge();
+				outerCounter.purge();
 			}
 		}
 	}

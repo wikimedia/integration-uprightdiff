@@ -88,7 +88,7 @@ bool processCommandLine(int argc, char** argv,
 		("format", po::value<std::string>(&format),
 		 	"The output format for statistics, may be text (the default), json or none.")
 		("log-timestamp,t", po::bool_switch(&diffOptions.logTimestamp),
-		 	"Annotate progress info with timestamps.")
+		 	"Annotate progress info with elapsed time.")
 		;
 
 	po::options_description invisible;
