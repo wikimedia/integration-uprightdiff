@@ -39,7 +39,8 @@ Accepted options are:
 If you see an error "libdc1394 error: Failed to initialize libdc1394", this can
 be ignored. OpenCV links to libdc1394 unconditionally, and libdc1394
 unconditionally writes out this error on startup if it does not find any
-cameras, but this utility does not make use of any camera functions.
+cameras, but this utility does not make use of any camera functions. This is
+fixed in OpenCV 3.x (which is not released yet): libdc1394 is now optional.
 
 ## Algorithm description
 
