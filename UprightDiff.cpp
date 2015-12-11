@@ -42,6 +42,7 @@ UprightDiff::UprightDiff(
 }
 
 void UprightDiff::execute() {
+	m_output.totalArea = m_size.area();
 	calculateMaskArea();
 
 	// Calculate block motion by exhaustive search
@@ -96,7 +97,7 @@ void UprightDiff::calculateMaskArea() {
 	Mat1b mask(m_size, 0);
 	for (int y = 0; y < m_size.height; y++) {
 		for (int x = 0; x < m_size.width; x++) {
-			if (m_alice(y, x) == m_bob(y, x)) {
+			if (m_alice(y, x) != m_bob(y, x)) {
 				mask(y, x) = 255;
 			}
 		}
@@ -221,7 +222,9 @@ Mat3b UprightDiff::visualizeResidual() {
 		for (int x = 0; x < m_size.width; x++) {
 			int dy = m_motion(y, x);
 			if (dy != NOT_FOUND) {
-				m_output.movedArea++;
+				if (dy != 0) {
+					m_output.movedArea++;
+				}
 				if (y + dy >= moved.rows || y + dy < 0) {
 					throw std::runtime_error(
 						"Error: out of bounds: (" +

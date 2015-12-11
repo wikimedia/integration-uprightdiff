@@ -47,12 +47,14 @@ int main(int argc, char** argv) {
 	cv::imwrite(mainOptions.destName, output.visual);
 
 	if (mainOptions.format == MainOptions::TEXT) {
+		std::cout << "Total area: " << output.totalArea << " pixels\n";
 		std::cout << "Modified area: " << output.maskArea << " pixels\n";
 		std::cout << "Moved area: " << output.movedArea << " pixels\n";
 		std::cout << "Residual area: " << output.residualArea << " pixels\n";
 	} else if (mainOptions.format == MainOptions::JSON) {
 		std::cout <<
-			"{\"modifiedArea\":" << output.maskArea << "," <<
+			"{\"totalArea\":" << output.totalArea << "," <<
+			"\"modifiedArea\":" << output.maskArea << "," <<
 			"\"movedArea\":" << output.movedArea << "," <<
 			"\"residualArea\":" << output.residualArea << "}\n";
 	}

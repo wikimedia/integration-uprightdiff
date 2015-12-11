@@ -22,6 +22,7 @@ public:
 	};
 
 	struct Output {
+		int totalArea = 0;
 		int maskArea = 0;
 		int movedArea = 0;
 		int residualArea = 0;
