@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <cmath>
 #include <stdexcept>
+#include <sstream>
 
 #include "UprightDiff.h"
 #include "BlockMotionSearch.h"
@@ -13,6 +14,15 @@ typedef UprightDiff::uchar uchar;
 typedef UprightDiff::Mat3b Mat3b;
 typedef UprightDiff::Mat1i Mat1i;
 typedef UprightDiff::Mat1b Mat1b;
+
+namespace {
+	// Equivalent for our purposes to C++11's std::to_string()
+	std::string to_string(int x) {
+		std::stringstream s;
+		s << x;
+		return s.str();
+	}
+}
 
 void UprightDiff::Diff(const cv::Mat & alice, const cv::Mat & bob, const Options & options,
 		Output & output) {
@@ -228,11 +238,11 @@ Mat3b UprightDiff::visualizeResidual() {
 				if (y + dy >= moved.rows || y + dy < 0) {
 					throw std::runtime_error(
 						"Error: out of bounds: (" +
-						std::to_string(x) +
+						to_string(x) +
 						", " +
-						std::to_string(y) +
+						to_string(y) +
 						" + " +
-						std::to_string(dy) +
+						to_string(dy) +
 						")\n");
 				}
 				moved(y, x) = m_alice(y + dy, x);
@@ -342,7 +352,7 @@ void UprightDiff::annotateMotion() {
 					mask,
 					cv::Point(x, y), // seedPoint
 					cv::Scalar(), // newVal
-					nullptr, // rect
+					NULL, // rect
 					cv::Scalar(), // loDiff
 					cv::Scalar(), // upDiff
 					4  // connectivity
@@ -363,15 +373,15 @@ void UprightDiff::annotateMotion() {
 						centrePoint, colour);
 
 				// Draw arrow label
-				std::string text = std::to_string(std::abs(currentMotion));
+				std::string text = to_string(std::abs(currentMotion));
 				cv::Size textSize = cv::getTextSize(text, cv::FONT_HERSHEY_PLAIN,
-						1, 1, nullptr);
+						1, 1, NULL);
 				cv::putText(contourVis, text,
 						centrePoint + cv::Point(2, currentMotion / 2 + textSize.height / 2),
 						cv::FONT_HERSHEY_PLAIN,	1, colour);
 
 				// Find and draw contours
-				std::vector<std::vector<cv::Point>> contours;
+				std::vector<std::vector<cv::Point> > contours;
 				findContours(currentMask, contours, CV_RETR_LIST, CV_CHAIN_APPROX_SIMPLE);
 				drawContours(contourVis, contours, -1, colour,
 						1, 8, cv::noArray(), INT_MAX, cv::Point(-2, -2));

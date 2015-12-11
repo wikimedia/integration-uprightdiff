@@ -43,7 +43,7 @@ int RollingBlockCounter<Mat>::operator ()(int cy) {
 		// Subtract top row (if any)
 		int topY = cy - m_halfWindow - 1;
 		if (topY >= 0) {
-			auto * row = m_strip[topY];
+			typename Mat::value_type * row = m_strip[topY];
 			for (int x = 0; x < m_strip.cols; x++) {
 				delta -= row[x];
 			}
@@ -51,7 +51,7 @@ int RollingBlockCounter<Mat>::operator ()(int cy) {
 		// Add bottom row
 		int bottomY = cy + m_halfWindow;
 		if (bottomY < m_strip.rows) {
-			auto * row = m_strip[bottomY];
+			typename Mat::value_type * row = m_strip[bottomY];
 			for (int x = 0; x < m_strip.cols; x++) {
 				delta += row[x];
 			}
@@ -62,7 +62,7 @@ int RollingBlockCounter<Mat>::operator ()(int cy) {
 		int topY = std::max(cy - m_halfWindow, 0);
 		int bottomY = std::min(cy + m_halfWindow, m_strip.rows - 1);
 		for (int y = topY; y <= bottomY; y++) {
-			auto * row = m_strip[y];
+			typename Mat::value_type * row = m_strip[y];
 			for (int x = 0; x < m_strip.cols; x++) {
 				delta += row[x];
 			}
