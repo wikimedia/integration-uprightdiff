@@ -56,6 +56,7 @@ private:
 	static void ArrowedLine(Mat3b img, cv::Point pt1, cv::Point pt2, const cv::Scalar& color,
 			   int thickness = 1, int line_type = 8, int shift = 0, double tipLength = 0.1);
 
+	cv::Mat convertIntermediate(const cv::Mat & m);
 	void intermediateOutput(const char* label, const cv::MatExpr & expr);
 	void intermediateOutput(const char* label, const cv::Mat & m);
 	

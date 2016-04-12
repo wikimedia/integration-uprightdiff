@@ -52,7 +52,7 @@ void UprightDiff::execute() {
 
 	// Scale up block motion matrix
 	m_motion = ScaleUpMotion(blockMotion, m_options.blockSize, m_size);
-	intermediateOutput("prepaint", m_motion * 10 + 128);
+	intermediateOutput("prepaint", m_motion);
 
 	info() << "Expanding motion blocks\n";
 
@@ -69,7 +69,7 @@ void UprightDiff::execute() {
 		// Paint up
 		paintSubBlockLine(cv::Point(x, m_size.height - 1), cv::Point(0, -1));
 	}
-	intermediateOutput("postpaint", m_motion * 10 + 128);
+	intermediateOutput("postpaint", m_motion);
 
 	info() << "Calculating residuals\n";
 
@@ -435,8 +435,35 @@ void UprightDiff::intermediateOutput(const char* label, const cv::MatExpr & expr
 	}
 }
 
-void UprightDiff::intermediateOutput(const char* label, const cv::Mat & m) {
-	if (!m_options.intermediateDir.empty()) {
-		cv::imwrite(m_options.intermediateDir + "/" + label, m);
+cv::Mat UprightDiff::convertIntermediate(const cv::Mat & m) {
+	if (m.type() != CV_32S) {
+		return m;
 	}
+	Mat3b out(m.size());
+	for (int y = 0; y < m.rows; y++) {
+		for (int x = 0; x < m.cols; x++) {
+			int dy = m.at<int>(y, x);
+			cv::Vec3b color;
+			if (dy == NOT_FOUND) {
+				color = cv::Vec3b(255, 255, 255);
+			} else {
+				if (dy < -127) {
+					dy = -127;
+				} else if (dy > 127) {
+					dy = 127;
+				}
+				color = cv::Vec3b(128 + dy, 0, 128 - dy);
+			}
+			out(y, x) = color;
+		}
+	}
+	return out;
+}
+
+void UprightDiff::intermediateOutput(const char* label, const cv::Mat & m) {
+	if (m_options.intermediateDir.empty()) {
+		return;
+	}
+	cv::Mat out = convertIntermediate(m);
+	cv::imwrite(m_options.intermediateDir + "/" + label + ".png", out);
 }
