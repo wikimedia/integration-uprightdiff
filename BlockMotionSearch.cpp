@@ -6,7 +6,7 @@
 BlockMotionSearch::Mat1i BlockMotionSearch::search() {
 	int yBlockCount = m_source.rows / m_blockSize;
 	int xBlockCount = m_source.cols / m_blockSize;
-	m_blockMotion = Mat1i(yBlockCount, xBlockCount, CV_32SC1);
+	m_blockMotion = Mat1i(yBlockCount, xBlockCount);
 
 	for (m_yIndex = 0; m_yIndex < yBlockCount; m_yIndex++) {
 		m_y = m_yIndex * m_blockSize;
@@ -34,8 +34,8 @@ BlockMotionSearch::Mat1i BlockMotionSearch::search() {
 				searchStart = m_y;
 			}
 			// Check bounds of searchStart
-			if (searchStart >= m_dest.rows - m_blockSize) {
-				searchStart = m_dest.rows - m_blockSize - 1;
+			if (searchStart > m_dest.rows - m_blockSize) {
+				searchStart = m_dest.rows - m_blockSize;
 			}
 			if (searchStart < 0) {
 				searchStart = 0;
@@ -44,7 +44,8 @@ BlockMotionSearch::Mat1i BlockMotionSearch::search() {
 			// Make sure the search window includes the no-change case
 			int tempWindowSize = std::max(std::abs(searchStart - m_y), m_windowSize);
 
-			OutwardAlternatingSearch search(searchStart, m_dest.rows - m_blockSize, tempWindowSize);
+			OutwardAlternatingSearch search(searchStart, m_dest.rows - m_blockSize + 1,
+					tempWindowSize);
 			m_blockMotion(m_yIndex, m_xIndex) = NOT_FOUND;
 			for (; search; ++search) {
 				if (tryMotion(sourceBlock, search.pos() - m_y)) {
@@ -73,9 +74,7 @@ bool BlockMotionSearch::blockEqual(const Mat3b & m1, const Mat3b & m2) {
 	}
 	int rowSize = m1.cols * m1.elemSize();
 	for (int y = 0; y < m1.rows; y++) {
-		cv::Mat_<unsigned char> row1 = m1.rowRange(y, y+1).reshape(1, 1);
-		cv::Mat_<unsigned char> row2 = m2.rowRange(y, y+1).reshape(1, 1);
-		if (std::memcmp(row1.ptr(), row2.ptr(), rowSize) != 0) {
+		if (std::memcmp(m1.ptr(y), m2.ptr(y), rowSize) != 0) {
 			return false;
 		}
 	}
