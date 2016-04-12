@@ -1,4 +1,4 @@
-#include <limits.h>
+#include <limits>
 #include <iostream>
 #include "Logger.h"
 
@@ -10,45 +10,27 @@ public:
 	typedef cv::Mat_<uchar> Mat1b;
 
 	struct Options {
-		Options()
-			: blockSize(16),
-			windowSize(200),
-			brushWidth(9),
-			outerHighlightWindow(21),
-			innerHighlightWindow(5),
-			logStream(NULL),
-			logLevel(Logger::FATAL),
-			logTimestamp(false)
-		{}
-
-		int blockSize;
-		int windowSize;
-		int brushWidth;
-		int outerHighlightWindow;
-		int innerHighlightWindow;
+		int blockSize = 16;
+		int windowSize = 200;
+		int brushWidth = 9;
+		int outerHighlightWindow = 21;
+		int innerHighlightWindow = 5;
 		std::string intermediateDir;
-		std::ostream * logStream;
-		int logLevel;
-		bool logTimestamp;
+		std::ostream * logStream = nullptr;
+		int logLevel = Logger::FATAL;
+		bool logTimestamp = false;
 	};
 
 	struct Output {
-		Output()
-			: totalArea(0),
-			maskArea(0),
-			movedArea(0),
-			residualArea(0)
-		{}
-
-		int totalArea;
-		int maskArea;
-		int movedArea;
-		int residualArea;
+		int totalArea = 0;
+		int maskArea = 0;
+		int movedArea = 0;
+		int residualArea = 0;
 		Mat3b visual;
 	};
 
 	enum {
-		NOT_FOUND = INT_MAX,
+		NOT_FOUND = std::numeric_limits<int>::max(),
 		INVALID = NOT_FOUND - 1
 	};
 

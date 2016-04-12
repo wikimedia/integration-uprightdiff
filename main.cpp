@@ -8,15 +8,11 @@
 namespace po = boost::program_options;
 
 struct MainOptions {
-	MainOptions()
-		: format(TEXT)
-	{}
-
 	enum {
 		NONE,
 		TEXT,
 		JSON
-	} format;
+	} format = TEXT;
 
 	std::string aliceName;
 	std::string bobName;
