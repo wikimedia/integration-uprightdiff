@@ -1,0 +1,22 @@
+Source: uprightdiff
+Section: devel
+Priority: optional
+Maintainer: Kunal Mehta <legoktm@member.fsf.org>
+Build-Depends: debhelper (>= 9), libopencv-highgui-dev, libboost-program-options-dev
+Standards-Version: 3.9.8
+Homepage: https://phabricator.wikimedia.org/diffusion/IURD/
+#Vcs-Git: https://anonscm.debian.org/collab-maint/uprightdiff.git
+Vcs-Browser: https://phabricator.wikimedia.org/diffusion/IURD/
+
+Package: uprightdiff
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: examine differences between two images
+ This utility examines the differences between two images.
+ It produces a visual annotation and reports statistics.
+ .
+ It is optimised for images which come from browser screenshots.
+ It analyses the image for vertical motion, and annotates connected
+ regions that have the same vertical displacement. Then it highlights
+ any remaining ("residual") differences which are not explained by
+ vertical motion on a pixel-by-pixel basis.
