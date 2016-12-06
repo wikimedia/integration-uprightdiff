@@ -29,3 +29,6 @@ fback:
 		-lopencv_video \
 		-lopencv_imgproc \
 		-o fback
+
+clean:
+	rm -f uprightdiff
