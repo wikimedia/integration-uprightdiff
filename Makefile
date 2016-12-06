@@ -4,8 +4,8 @@ PREFIX=/usr/local
 all: uprightdiff
 
 install: all
-	install -d $(PREFIX)/bin
-	install -s uprightdiff $(PREFIX)/bin/uprightdiff
+	install -d $(DESTDIR)$(PREFIX)/bin
+	install -s uprightdiff $(DESTDIR)$(PREFIX)/bin/uprightdiff
 
 uprightdiff:
 	g++ $(CFLAGS) main.cpp BlockMotionSearch.cpp UprightDiff.cpp \
