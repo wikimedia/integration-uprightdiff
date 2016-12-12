@@ -2,5 +2,5 @@
 host=gerrit.wikimedia.org
 port=29418
 project=integration/uprightdiff.git
-defaultbranch=master
 defaultrebase=0
+track=1
