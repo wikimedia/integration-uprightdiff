@@ -3,9 +3,9 @@ Section: devel
 Priority: optional
 Maintainer: Kunal Mehta <legoktm@member.fsf.org>
 Build-Depends: debhelper (>= 9), libopencv-highgui-dev, libboost-program-options-dev
-Standards-Version: 3.9.8
-Homepage: https://phabricator.wikimedia.org/diffusion/IURD/
-#Vcs-Git: https://anonscm.debian.org/collab-maint/uprightdiff.git
+Standards-Version: 4.0.0
+Homepage: https://www.mediawiki.org/wiki/Uprightdiff
+Vcs-Git: https://gerrit.wikimedia.org/r/p/integration/uprightdiff
 Vcs-Browser: https://phabricator.wikimedia.org/diffusion/IURD/
 
 Package: uprightdiff
