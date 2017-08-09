@@ -1,0 +1,59 @@
+.TH UPRIGHTDIFF "1" "August 2017" "uprightdiff 1.0" "User Commands"
+.SH NAME
+uprightdiff \- examines the differences between two images
+.SH SYNOPSIS
+.B uprightdiff
+[\fI\,options\/\fR] \fI\,<input-1> <input-2> <output>\/\fR
+.SH DESCRIPTION
+uprightdiff examines the differences between two images. It produces a visual annotation
+and reports statistics.
+
+It is optimised for images which come from browser screenshots. It analyses
+the image for vertical motion, and annotates connected regions that have the
+same vertical displacement. Then it highlights any remaining ("residual")
+differences which are not explained by vertical motion on a pixel-by-pixel
+basis.
+.TP
+\fB\-\-help\fR
+Show help message and exit
+.TP
+\fB\-\-block\-size\fR arg
+Block size for initial search (default 16)
+.TP
+\fB\-\-window\-size\fR arg
+Initial range for vertical motion detection (default
+200)
+.TP
+\fB\-\-brush\-width\fR arg
+Brush width when heuristically expanding blocks. A
+higher value gives smoother motion regions. This
+should be an odd number. (default 9)
+.TP
+\fB\-\-outer\-hl\-window\fR arg
+The size of the outer square used for detecting
+isolated small features to highlight. This size
+defines what we mean by "isolated". It should be an
+odd number. (default 21)
+.TP
+\fB\-\-inner\-hl\-window\fR arg
+The size of the inner square used for detecting
+isolated small features to highlight. This size
+defines what we mean by "small". It should be an odd
+number. (default 5)
+.TP
+\fB\-\-intermediate\-dir\fR arg
+A directory where intermediate images should be
+placed. This is our equivalent of debug or trace
+output.
+.TP
+\fB\-v\fR [ \fB\-\-verbose\fR ]
+Write progress info to stderr.
+.TP
+\fB\-\-format\fR arg
+The output format for statistics, may be text (the
+default), json or none.
+.TP
+\fB\-t\fR [ \fB\-\-log\-timestamp\fR ]
+Annotate progress info with elapsed time.
+.SH AUTHOR
+Tim Starling <tstarling@wikimedia.org>
