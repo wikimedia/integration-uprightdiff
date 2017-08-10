@@ -1,5 +1,5 @@
 CFLAGS +=-g -std=c++11 -Wall -O2
-PREFIX=/usr/local
+PREFIX=/usr
 
 all: uprightdiff
 
