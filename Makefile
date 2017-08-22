@@ -15,20 +15,5 @@ uprightdiff:
 		-lboost_program_options \
 		-o uprightdiff
 
-linehash:
-	g++ $(CFLAGS) linehash.cpp \
-		-lmhash \
-		-lopencv_highgui \
-		-lopencv_core \
-		-o linehash
-
-fback:
-	g++ $(CFLAGS) fback.cpp \
-		-lopencv_highgui \
-		-lopencv_core \
-		-lopencv_video \
-		-lopencv_imgproc \
-		-o fback
-
 clean:
 	rm -f uprightdiff
