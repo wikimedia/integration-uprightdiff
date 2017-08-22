@@ -1,7 +1,7 @@
 CFLAGS +=-g -std=c++11 -Wall -O2
-PREFIX=/usr/local
+PREFIX=/usr
 
-all: uprightdiff
+all: uprightdiff test
 
 install: all
 	install -d $(DESTDIR)$(PREFIX)/bin
@@ -15,20 +15,9 @@ uprightdiff:
 		-lboost_program_options \
 		-o uprightdiff
 
-linehash:
-	g++ $(CFLAGS) linehash.cpp \
-		-lmhash \
-		-lopencv_highgui \
-		-lopencv_core \
-		-o linehash
-
-fback:
-	g++ $(CFLAGS) fback.cpp \
-		-lopencv_highgui \
-		-lopencv_core \
-		-lopencv_video \
-		-lopencv_imgproc \
-		-o fback
+test:
+	g++ $(CFLAGS) tests/RollingBlockCounterTest.cpp -lopencv_core -o test
+	./test
 
 clean:
-	rm -f uprightdiff
+	rm -f uprightdiff test

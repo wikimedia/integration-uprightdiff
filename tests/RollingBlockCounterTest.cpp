@@ -1,6 +1,6 @@
 #include <iostream>
 #include <opencv2/core/core.hpp>
-#include "RollingBlockCounter.h"
+#include "../RollingBlockCounter.h"
 
 typedef cv::Mat_<int> Mat1i;
 bool good = true;
