@@ -113,7 +113,11 @@ On Mac OS X with homebrew:
 
 Then compile:
 
-`make`
+```
+autoreconf --verbose --install --symlink
+./configure
+make
+```
 
 And optionally install it:
 
