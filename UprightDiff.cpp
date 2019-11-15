@@ -372,7 +372,7 @@ void UprightDiff::annotateMotion() {
 
 				// Find and draw contours
 				std::vector<std::vector<cv::Point>> contours;
-				findContours(currentMask, contours, CV_RETR_LIST, CV_CHAIN_APPROX_SIMPLE);
+				findContours(currentMask, contours, cv::RETR_LIST, cv::CHAIN_APPROX_SIMPLE);
 				drawContours(contourVis, contours, -1, colour,
 						1, 8, cv::noArray(), INT_MAX, cv::Point(-2, -2));
 				regionIndex++;
