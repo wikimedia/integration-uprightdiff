@@ -4,5 +4,5 @@ bin_PROGRAMS = uprightdiff
 uprightdiff_SOURCES = main.cpp BlockMotionSearch.cpp UprightDiff.cpp
 
 test:
-	g++ $(CFLAGS) tests/RollingBlockCounterTest.cpp -lopencv_core -o test
+	g++ $(CFLAGS) $(CPPFLAGS) tests/RollingBlockCounterTest.cpp -lopencv_core -o test
 	./test
