@@ -22,7 +22,8 @@ AC_CHECK_LIB([opencv_core], [main])
 AC_CHECK_LIB([opencv_highgui], [main])
 # FIXME: Replace `main' with a function in `-lopencv_imgproc':
 AC_CHECK_LIB([opencv_imgproc], [main])
-AC_SEARCH_LIBS([_ZN2cv7imwriteERKNS_6StringERKNS_11_InputArrayERKSt6vectorIiSaIiEE], [opencv_imgcodecs])
+# FIXME: Replace `main' with a function in `-lopencv_imgcodecs':
+AC_CHECK_LIB([opencv_imgcodecs], [main])
 
 # Checks for header files.
 

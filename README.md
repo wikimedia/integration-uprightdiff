@@ -105,7 +105,7 @@ e.g.:
 
 Install the dependencies. On Debian/Ubuntu this means:
 
-`sudo apt-get install build-essential g++ libopencv-highgui-dev libboost-program-options-dev`
+`sudo apt-get install build-essential g++ libopencv-highgui-dev libopencv-imgcodecs-dev libboost-program-options-dev`
 
 On Mac OS X with homebrew:
 
