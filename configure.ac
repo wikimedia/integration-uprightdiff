@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.69])
-AC_INIT([uprightdiff], [1.3.0], [https://phabricator.wikimedia.org/tag/uprightdiff/])
+AC_INIT([uprightdiff], [1.4.0], [https://phabricator.wikimedia.org/tag/uprightdiff/])
 
 AM_INIT_AUTOMAKE
 EXTRA_CFLAGS=[-g -std=c++11 -Wall -O2]
